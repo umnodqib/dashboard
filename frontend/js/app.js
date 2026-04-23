@@ -1,4 +1,8 @@
-const API_BASE = 'http://localhost:5000';
+// ✅ CHANGE FROM:
+// const API_BASE = 'http://localhost:5000';
+
+// ✅ TO:
+const API_BASE = '/api';  // Relative path, works dengan Cloudflare
 const AUTH_KEY = 'GHOST_SECRET_2026';
 
 document.addEventListener('DOMContentLoaded', loadPanels);
@@ -6,7 +10,7 @@ setInterval(loadPanels, 5000);
 
 async function loadPanels() {
     try {
-        const response = await fetch(`${API_BASE}/api/status`, {
+        const response = await fetch(`${API_BASE}/status`, {
             headers: { 'X-Auth-Key': AUTH_KEY }
         });
         const data = await response.json();
