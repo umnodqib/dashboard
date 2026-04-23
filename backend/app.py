@@ -27,9 +27,32 @@ def check_auth():
     if request.headers.get("X-Auth-Key") != AUTH_KEY:
         return jsonify({"error": "Unauthorized"}), 401
 
-@app.route('/', methods=['GET'])
+@app.route('/')
 def index():
-    return jsonify({"status": "online", "service": "Dashboard API"})
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>GHOST COMMANDER - Dashboard</title>
+        <link rel="stylesheet" href="/css/styles.css">
+    </head>
+    <body>
+        <div class="navbar">
+            <h1>👻 GHOST COMMANDER</h1>
+            <div class="navbar-stats">
+                <div>ONLINE: <span id="stat-online">0</span></div>
+                <div>BUSY: <span id="stat-busy">0</span></div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="panels-grid" id="panels-grid"></div>
+        </div>
+        <script src="/js/app.js"></script>
+    </body>
+    </html>
+    """
 
 @app.route('/health', methods=['GET'])
 def health():
