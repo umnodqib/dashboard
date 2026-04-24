@@ -745,7 +745,7 @@ def status():
                 last_hb_seconds = (datetime.now() - last_hb).total_seconds()
                 
                 # Offline jika > 60 detik tanpa heartbeat
-                if last_hb_seconds > 60:
+                if last_hb_seconds > 120:
                     panel_data['status'] = 'OFFLINE'
                 else:
                     panel_data['status'] = 'ONLINE'
