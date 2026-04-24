@@ -4,6 +4,8 @@ from panel_registry import PanelRegistry
 from discovery_service import PanelDiscoveryService
 import os
 from dotenv import load_dotenv
+import uuid
+from datetime import datetime
 
 load_dotenv()
 app = Flask(__name__, static_folder='static', static_url_path='')
