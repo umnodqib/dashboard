@@ -41,11 +41,11 @@ def check_auth():
 def serve_index():
     """Serve dashboard index.html"""
     try:
-        with open('static/index.html', 'r') as f:
+        with open('frontend/index.html', 'r') as f:
             print(f"✅ [SERVE] Serving index.html", flush=True)
             return f.read()
     except FileNotFoundError:
-        print(f"⚠️ [SERVE] static/index.html not found", flush=True)
+        print(f"⚠️ [SERVE] frontend/index.html not found", flush=True)
         return """
         <!DOCTYPE html>
         <html>
