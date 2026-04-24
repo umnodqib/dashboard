@@ -115,6 +115,106 @@ def health():
     return jsonify({"status": "healthy"}), 200
 
 # ============================================
+# API: COMMANDS (Baru)
+# ============================================
+
+@app.route('/api/command/create', methods=['POST'])
+def create_command():
+    """Create command untuk mengirim task ke panel"""
+    try:
+        data = request.json or {}
+        
+        slot = data.get('slot')
+        action = data.get('action')  # start_login, start_loop, stop, clean_ram
+        payload = data.get('payload', {})
+        
+        print(f"➕ [COMMAND] Creating: slot={slot}, action={action}", flush=True)
+        
+        if not slot or not action:
+            return jsonify({"error": "Missing slot or action"}), 400
+        
+        # Simpan command (untuk sekarang, bisa pake in-memory dict atau file)
+        # TODO: Pakai database untuk production
+        if not hasattr(app, 'commands'):
+            app.commands = {}
+        
+        import uuid
+        cmd_id = str(uuid.uuid4())
+        app.commands[cmd_id] = {
+            "id": cmd_id,
+            "slot": slot,
+            "action": action,
+            "payload": payload,
+            "status": "PENDING"
+        }
+        
+        print(f"✅ [COMMAND] Created: {cmd_id}", flush=True)
+        return jsonify({
+            "id": cmd_id,
+            "status": "PENDING"
+        }), 201
+        
+    except Exception as e:
+        print(f"❌ [COMMAND] Error: {e}", flush=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/command/get/<int:slot>', methods=['GET'])
+def get_commands(slot):
+    """Panel pull commands untuk slot tertentu"""
+    try:
+        if not hasattr(app, 'commands'):
+            app.commands = {}
+        
+        # Filter commands untuk slot ini yang PENDING
+        pending_cmds = [
+            cmd for cmd in app.commands.values() 
+            if cmd.get('slot') == slot and cmd.get('status') == 'PENDING'
+        ]
+        
+        print(f"📥 [COMMAND] Slot {slot} pulling {len(pending_cmds)} commands", flush=True)
+        
+        return jsonify(pending_cmds), 200
+        
+    except Exception as e:
+        print(f"❌ [COMMAND] Error: {e}", flush=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/command/update/<cmd_id>', methods=['POST'])
+def update_command(cmd_id):
+    """Panel report command status"""
+    try:
+        data = request.json or {}
+        
+        if not hasattr(app, 'commands'):
+            app.commands = {}
+        
+        if cmd_id not in app.commands:
+            return jsonify({"error": "Command not found"}), 404
+        
+        # Update status
+        app.commands[cmd_id]['status'] = data.get('status', 'UNKNOWN')
+        app.commands[cmd_id]['result'] = data.get('result')
+        
+        print(f"🔄 [COMMAND] Updated {cmd_id}: {data.get('status')}", flush=True)
+        
+        return jsonify({"status": "updated"}), 200
+        
+    except Exception as e:
+        print(f"❌ [COMMAND] Error: {e}", flush=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/command/list', methods=['GET'])
+def list_commands():
+    """Get all commands"""
+    if not hasattr(app, 'commands'):
+        app.commands = {}
+    
+    return jsonify(list(app.commands.values())), 200
+    
+# ============================================
 # API: PANEL REGISTRATION
 # ============================================
 @app.route('/api/register', methods=['POST'])
