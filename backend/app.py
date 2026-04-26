@@ -262,6 +262,42 @@ def not_found(e):
 def server_error(e):
     return jsonify({"error": "Server error"}), 500
 
+# ============================================
+# API: GET PANEL LOG
+# ============================================
+@app.route('/api/panel/<int:slot>/logs', methods=['GET'])
+def get_panel_logs(slot):
+    """Fetch logs dari panel tertentu"""
+    try:
+        panel_id = f"panel_{slot}"
+        if panel_id not in registry.panels:
+            return jsonify({"error": "Panel not found"}), 404
+        
+        panel_data = registry.panels[panel_id]
+        panel_url = panel_data.get('url')
+        
+        if not panel_url:
+            return jsonify({"error": "Panel URL not found"}), 400
+        
+        # Request logs dari panel
+        resp = requests.get(
+            f"{panel_url}/logs",
+            headers={"X-Auth-Key": AUTH_KEY},
+            timeout=10,
+            verify=False
+        )
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            print(f"📋 [LOGS] Fetched from Slot {slot}", flush=True)
+            return jsonify(data), 200
+        else:
+            return jsonify({"error": f"Panel error: {resp.status_code}"}), resp.status_code
+            
+    except Exception as e:
+        print(f"❌ [LOGS] Error: {e}", flush=True)
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     print("🚀 [DASHBOARD] Starting GHOST COMMANDER on port 5000", flush=True)
     app.run(host='0.0.0.0', port=5000, debug=False)
