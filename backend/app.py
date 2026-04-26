@@ -368,14 +368,24 @@ def serve_index():
         // ============================================
         // PANELS TAB
         // ============================================
+                // ============================================
+        // PANELS TAB
+        // ============================================
         async function loadPanels() {
             try {
                 const response = await fetch(`${API_BASE}/status`, {
                     headers: { 'X-Auth-Key': AUTH_KEY }
                 });
+                if (!response.ok) {
+                    console.error('Response status:', response.status);
+                    return;
+                }
                 const data = await response.json();
+                console.log('[DEBUG] /api/status response:', data);  // ← DEBUG log
                 renderPanels(data);
-                updateSlotSelect(data.panels);
+                if (data.panels) {
+                    updateSlotSelect(data.panels);
+                }
             } catch (error) {
                 console.error('Error loading panels:', error);
             }
@@ -385,34 +395,77 @@ def serve_index():
             const grid = document.getElementById('panels-grid');
             grid.innerHTML = '';
             
-            document.getElementById('stat-online').textContent = data.online;
-            document.getElementById('stat-busy').textContent = data.busy;
+            // ✅ FIX: Handle jika data undefined atau tidak punya field yang benar
+            if (!data) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; color: #999;">No data from server</p>';
+                document.getElementById('stat-online').textContent = '?';
+                document.getElementById('stat-busy').textContent = '?';
+                return;
+            }
             
-            if (data.panels.length === 0) {
+            const onlineCount = data.online || 0;
+            const busyCount = data.busy || 0;
+            const panelsList = data.panels || [];
+            
+            console.log('[DEBUG] renderPanels - online:', onlineCount, 'busy:', busyCount, 'panels:', panelsList);
+            
+            document.getElementById('stat-online').textContent = onlineCount;
+            document.getElementById('stat-busy').textContent = busyCount;
+            
+            if (panelsList.length === 0) {
                 grid.innerHTML = '<p style="grid-column: 1/-1; color: #999;">No panels connected</p>';
                 return;
             }
             
-            data.panels.forEach(panel => {
+            panelsList.forEach(panel => {
+                if (!panel) return;  // skip undefined
+                
                 const card = document.createElement('div');
                 card.className = 'panel-card';
+                
+                const statusLower = (panel.status || 'OFFLINE').toLowerCase();
+                const slotNum = panel.slot || 'N/A';
+                const ipAddr = panel.ip || 'N/A';
+                const stateName = panel.state || 'UNKNOWN';
+                const emailsCount = (panel.data && panel.data.emails) || 0;
+                const linksCount = (panel.data && panel.data.links) || 0;
+                
                 card.innerHTML = `
-                    <div class="panel-slot">SLOT ${panel.slot}</div>
-                    <span class="status-badge ${panel.status.toLowerCase()}">${panel.status}</span>
+                    <div class="panel-slot">SLOT ${slotNum}</div>
+                    <span class="status-badge ${statusLower}">${panel.status || 'OFFLINE'}</span>
                     <div class="panel-info">
-                        <div>IP: ${panel.ip}</div>
-                        <div>State: ${panel.state}</div>
-                        <div>Emails: ${panel.data.emails}</div>
-                        <div>Links: ${panel.data.links}</div>
+                        <div>IP: ${ipAddr}</div>
+                        <div>State: ${stateName}</div>
+                        <div>Emails: ${emailsCount}</div>
+                        <div>Links: ${linksCount}</div>
                     </div>
                     <div class="panel-buttons">
-                        <button onclick="executeAction(${panel.slot}, 'start_login')">Login</button>
-                        <button onclick="executeAction(${panel.slot}, 'start_loop')">Loop</button>
-                        <button class="stop" onclick="executeAction(${panel.slot}, 'stop')">Stop</button>
+                        <button onclick="executeAction(${slotNum}, 'start_login')">Login</button>
+                        <button onclick="executeAction(${slotNum}, 'start_loop')">Loop</button>
+                        <button class="stop" onclick="executeAction(${slotNum}, 'stop')">Stop</button>
                     </div>
                 `;
                 grid.appendChild(card);
             });
+        }
+
+        function updateSlotSelect(panels) {
+            const select = document.getElementById('slot-select');
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="">-- Select Panel --</option>';
+            
+            if (panels && Array.isArray(panels)) {
+                panels.forEach(panel => {
+                    if (!panel) return;
+                    const option = document.createElement('option');
+                    option.value = panel.slot;
+                    option.textContent = `Slot ${panel.slot} (${panel.status || 'UNKNOWN'} - ${panel.state || 'UNKNOWN'})`;
+                    select.appendChild(option);
+                });
+            }
+            
+            if (currentValue) select.value = currentValue;
         }
 
         function updateSlotSelect(panels) {
