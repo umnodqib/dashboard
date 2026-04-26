@@ -6,6 +6,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 COPY panel_registry.py .
 COPY discovery_service.py .
-COPY --chown=root:root ../frontend /app/frontend
+COPY frontend /app/frontend
 EXPOSE 5000
 CMD ["python", "app.py"]
