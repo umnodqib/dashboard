@@ -265,9 +265,11 @@ def server_error(e):
 # ============================================
 # API: GET PANEL LOG
 # ============================================
+# Edit dashboardfix/backend/app.py line ~780
+# Ubah ke gunakan localhost jika panel di host yang sama
+
 @app.route('/api/panel/<int:slot>/logs', methods=['GET'])
 def get_panel_logs(slot):
-    """Fetch logs dari panel tertentu"""
     try:
         panel_id = f"panel_{slot}"
         if panel_id not in registry.panels:
@@ -279,25 +281,32 @@ def get_panel_logs(slot):
         if not panel_url:
             return jsonify({"error": "Panel URL not found"}), 400
         
-        # Request logs dari panel
+        # ✅ FIX: Gunakan internal IP daripada public URL
+        # panel_url mungkin https://domain.io, ubah ke http://local-ip:7860
+        panel_ip = panel_data.get('ip')
+        if panel_ip and panel_ip != 'Unknown IP':
+            internal_url = f"http://{panel_ip}:7860"
+        else:
+            internal_url = panel_url
+        
+        print(f"📋 [LOGS] Fetching from {internal_url}/logs", flush=True)
+        
         resp = requests.get(
-            f"{panel_url}/logs",
+            f"{internal_url}/logs",
             headers={"X-Auth-Key": AUTH_KEY},
-            timeout=10,
+            timeout=5,
             verify=False
         )
         
         if resp.status_code == 200:
-            data = resp.json()
-            print(f"📋 [LOGS] Fetched from Slot {slot}", flush=True)
-            return jsonify(data), 200
+            return jsonify(resp.json()), 200
         else:
-            return jsonify({"error": f"Panel error: {resp.status_code}"}), resp.status_code
+            return jsonify({"error": f"Panel error: {resp.status_code}"}), 500
             
     except Exception as e:
         print(f"❌ [LOGS] Error: {e}", flush=True)
-        return jsonify({"error": str(e)}), 500
-
+        return jsonify({"error": str(e), "trace": str(e)}), 500
+        
 if __name__ == '__main__':
     print("🚀 [DASHBOARD] Starting GHOST COMMANDER on port 5000", flush=True)
     app.run(host='0.0.0.0', port=5000, debug=False)
